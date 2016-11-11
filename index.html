@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Sunburst - Association Analysis</title>
+    <meta charset="UTF-8">
+    
+    <!-- Stylesheet Ref -->
+    <link rel="stylesheet" type="text/css" href="css/dc.css"/>
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.css"/>
+    <link rel="stylesheet" type="text/css" href="css/daterangepicker.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+    
+    <!-- Javascript Ref -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="js/moment.js"></script>
+    <script type="text/javascript" src="js/d3.js"></script>
+    <script type="text/javascript" src="js/crossfilter.js"></script>
+    <script type="text/javascript" src="js/dc.js"></script>
+    <script type="text/javascript" src="js/daterangepicker.js"></script>
+    
+    <!-- Custom css for page -->
+    <style>
+        body {
+          padding-top: 30px;
+          padding-bottom: 30px;
+        }
+        
+        .add-padding{
+            padding-top: 30px;
+        }
+        
+        .theme-dropdown .dropdown-menu {
+          position: static;
+          display: block;
+          margin-bottom: 20px;
+        }
+
+        .theme-showcase > p > .btn {
+          margin: 5px 0;
+        }
+
+        .theme-showcase .navbar .container {
+          width: auto;
+        }
+        
+        .pie-slice path {
+            stroke:#fff;
+        }
+        .dc-chart .selected path {
+            stroke-width: 1;
+            stroke:#fff;
+        }
+    </style>
+</head>
+        
+<body>
+    
+        <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">KidDar</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="#">Home</a></li>
+            <li class="active"><a href="index.html">Dashboard</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+    
+    <div class="container theme-showcase" roles=main>
+        <div class="row add-padding">
+            <div class="col-md-4">
+                <h4>Select a Date Range</h4>
+                <div class="input-group">
+                    <input type="text" id="date-range" class="form-control" aria-describedby="basic-addon2">
+                    <span class="input-group-addon" id="basic-addon2"><i class="fa fa-calendar" aria-hidden="true"></i></span>
+                </div>
+                <div id="data-count">
+                    Showing <span class="filter-count" /></span> of <span class="total-count"></span> data points | <a href="javascript:dc.filterAll(); dc.renderAll();">Reset All</a>      
+                </div>
+            </div>
+        </div>
+
+        <div class="row  add-padding">
+            <div class="col-md-5">
+
+                <div id="test"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    
+    <script type="text/javascript">        
+    // init charts
+    var chart = dc.barChart('#test');    
+    
+    //read data
+
+  d3.json('students_v2.json', function(error, counts) {
+      if(error)
+          throw new Error(error);
+      var ndx            = crossfilter(counts),
+          studentDimension = ndx.dimension(function(d) {return d.name;}),
+          sumGroup       = studentDimension.group().reduceSum(function(d) {return d.proximity;});
+      chart
+          .width(768)
+          .height(380)
+          .x(d3.scale.ordinal())
+          .xUnits(dc.units.ordinal)
+          .brushOn(false)
+          .xAxisLabel('Student')
+          .yAxisLabel('Count')
+          .dimension(studentDimension)
+          .barPadding(0.1)
+          .outerPadding(0.05)
+          .group(sumGroup);
+      chart.render();
+  });
+        
+        
+    </script>
+
+</body>
+</html>
