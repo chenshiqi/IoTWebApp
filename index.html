@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Sunburst - Association Analysis</title>
+    <title>KidDar Dashboard</title>
     <meta charset="UTF-8">
     
     <!-- Stylesheet Ref -->
@@ -91,9 +91,11 @@
         </div>
 
         <div class="row  add-padding">
-            <div class="col-md-5">
-
-                <div id="test"></div>
+            <div class="col-md-6">
+                <div id="studentTrend"></div>
+            </div>
+            <div class="col-md-6">
+                <div id="pingTrend">
             </div>
 
         </div>
@@ -105,9 +107,30 @@
     
     <script type="text/javascript">        
     // init charts
-    var chart = dc.barChart('#test');    
+    var studentTrend = dc.barChart('#studentTrend');
+    var pingTrend = dc.seriesChart('#pingTrend');
+        
+        
+    // date picker
     
-    //read data
+    $('#date-range').daterangepicker({
+            "dateLimit": {
+                "days": 31
+            },
+            "showCustomRangeLabel": false,
+            "alwaysShowCalendars": true,
+            "autoApply": true,
+            "startDate": "02/01/2016",
+            "endDate": "02/25/2016",
+            "minDate": "11/15/2015",
+            "maxDate": "09/01/2016"
+        }, function(start, end, label) {
+                console.log("Start date: " + start + " and end date: " + end);
+            });
+    
+    
+        
+        //read data
 
   d3.json('students_v2.json', function(error, counts) {
       if(error)
@@ -115,8 +138,11 @@
       var ndx            = crossfilter(counts),
           studentDimension = ndx.dimension(function(d) {return d.name;}),
           sumGroup       = studentDimension.group().reduceSum(function(d) {return d.proximity;});
-      chart
-          .width(768)
+      
+      
+      //bar chart
+      studentTrend
+          .width(568)
           .height(380)
           .x(d3.scale.ordinal())
           .xUnits(dc.units.ordinal)
@@ -127,7 +153,11 @@
           .barPadding(0.1)
           .outerPadding(0.05)
           .group(sumGroup);
-      chart.render();
+      
+      //series chart
+      
+      
+      dc.renderAll();
   });
         
         
