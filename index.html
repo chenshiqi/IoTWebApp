@@ -12,6 +12,8 @@
     
     <!-- Javascript Ref -->
     <script src="https://www.gstatic.com/firebasejs/3.6.0/firebase.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/3.5.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/3.5.2/firebase-database.js"></script>
     <script>
       // Initialize Firebase
       var config = {
@@ -22,6 +24,11 @@
         messagingSenderId: "526517068007"
       };
       firebase.initializeApp(config);
+      // Get all student data
+      var db = firebase.database();
+      db.ref('/childData').once('value').then(function(snapshot) {
+        console.log(snapshot.val());
+      });
     </script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="js/moment.js"></script>
@@ -29,6 +36,8 @@
     <script type="text/javascript" src="js/crossfilter.js"></script>
     <script type="text/javascript" src="js/dc.js"></script>
     <script type="text/javascript" src="js/daterangepicker.js"></script>
+
+    <!-- Get all student data -->
     
     <!-- Custom css for page -->
     <style>
