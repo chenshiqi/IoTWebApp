@@ -153,9 +153,25 @@
         
         //read data
 
-  d3.json('students_v2.json', function(error, counts) {
+  d3.json('students_v2.json', function(error, data) {
       if(error)
           throw new Error(error);
+      
+      //to only retrieve student's name and count number of isMonitering == fasle and store into new data array
+      
+      var dataStudent = [];
+      
+      data.forEach(function(d){
+          var name = d.name;
+          //TODO: check if dataStudent contains d.name
+          
+          var countFalse = 0;
+          if (d.isMonitoring == false){
+              countFalse++;
+          }
+          dataStudent.push([name,countFalse]);
+      });
+      
       var ndx            = crossfilter(counts),
           studentDimension = ndx.dimension(function(d) {return d.name;}),
           sumGroup       = studentDimension.group().reduceSum(function(d) {return d.proximity;});
