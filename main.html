@@ -149,7 +149,8 @@
             minor: rawStudentData[key].minor,
             proximity: rawStudentData[key].proximity,
             uuid: rawStudentData[key].uuid,
-            timestamp : new Date(rawStudentData[key].timestamp)
+            timestamp : rawStudentData[key].timestamp 
+            //timestamp : new Date(rawStudentData[key].timestamp) 
           }
         });
 
@@ -189,8 +190,12 @@
         var studentTrend = dc.barChart('#studentTrend');
         var pingTrend = dc.seriesChart('#pingTrend');
             
-            
-          // date picker
+        // date picker
+        var minDate, maxDate;
+          
+        var dateParse = d3.time.format('%d/%m/%Y').parse;
+        var formatDate = d3.time.format("%x"); 
+        
           $('#date-range').daterangepicker({
                 "dateLimit": {
                     "days": 31
@@ -219,7 +224,7 @@
 
           var studentDimension = ndx.dimension(function(d) {
             // console.log(d.associatedChild);
-            return (d.proximity > 7 || d.proximity < 0) ? d.associatedChild:"wrong";
+            return (d.proximity > 7 || d.proximity < 0) ? d.associatedChild:"wrong"; //this line gives all the normal value and parse them to wrong
             
             // return d.associatedChild;
           });
@@ -233,14 +238,18 @@
               all: function () {
                   return studentSumGroup.top(Infinity).filter( function (d) { 
                     // console.log(d);
-                    return d.key != "wrong"; 
+                    return d.key != "wrong";
                   });
               }
           }
 
-          var trendDimension   = ndx.dimension(function(d){ return +d.name, +d.timestamp;});
-          // var trendGroup       = trendDimension.group().reduceSum(function(d){ return d.proximity;});
-          //the data needs to have d.name, d.timestamp (need to format), d.proximity
+          var timeAndChild   = ndx.dimension(function(d){ return [+d.associatedChild, +d.timestamp];});
+          var proximityDim   = ndx.dimension(function(d){ return [d.proximity];}); 
+          var proximityGroup = proximityDim.group();
+           
+          //var proximityGroup = proximityDim.group().reduce(function(d){ return d.proximity});
+          
+          
           
           //bar chart
           studentTrend
@@ -255,6 +264,29 @@
               .yAxisLabel('Count')
               .barPadding(0.1)
               .outerPadding(0.05);
+            
+          //series chart
+             pingTrend
+               .width(568)
+               .height(480)
+               .chart(function(c) { return dc.lineChart(c).interpolate('basis'); })
+               .x(d3.time.scale().domain([new Date(2016, 10, 13),new Date(2016,10,14)]))
+               .y(d3.scale.linear().domain([-2, 15]))
+               .brushOn(false)
+               .yAxisLabel("Proximity (m)")
+               .xAxisLabel("Timestamp")
+               //.clipPadding(10)
+               .elasticY(true) 
+               .elasticX(true)
+               .dimension(timeAndChild) //where is this
+               .group(proximityGroup)
+               .mouseZoomable(false)
+               .seriesAccessor(function(d) {return "Student: " + d.key[0];})
+               .keyAccessor(function(d) {return +d.key[1];})
+               .valueAccessor(function(d) {return +d.value;})
+               .legend(dc.legend().x(350).y(350).itemHeight(15).gap(5).horizontal(1).legendWidth(140).itemWidth(70));
+             //pingTrend.yAxis().tickFormat(function(d) {return d3.format(',d')(d+299500);});
+             pingTrend.margins().left += 40;  
           
           // console.log(studentDimension);
           console.log("reahced");
@@ -263,26 +295,7 @@
           // var minDate = new Date (2016, 10, 1);
           // var maxDate = new Date (2016, 10, 30);
 
-          // //series chart
-          //   pingTrend
-          //     .width(768)
-          //     .height(480)
-          //     .chart(function(c) { return dc.lineChart(c).interpolate('basis'); })
-          //     .x(d3.time.scale().domain([minDate,maxDate]))
-          //     .brushOn(false)
-          //     .yAxisLabel("Proximity (m)")
-          //     .xAxisLabel("Timestamp")
-          //     .clipPadding(10)
-          //     .elasticY(true) 
-          //     .dimension(runDimension) //change to new dimension --> trendDimension 
-          //     .group(runGroup) // change to new group
-          //     .mouseZoomable(true)
-          //     .seriesAccessor(function(d) {return "Student: " + d.key[0];})
-          //     .keyAccessor(function(d) {return +d.key[1];})
-          //     .valueAccessor(function(d) {return +d.value - 500;})
-          //     .legend(dc.legend().x(350).y(350).itemHeight(13).gap(5).horizontal(1).legendWidth(140).itemWidth(70));
-          //   chart.yAxis().tickFormat(function(d) {return d3.format(',d')(d+299500);});
-          //   chart.margins().left += 40;   
+ 
 
           //   moveChart
           //     .width(990)
