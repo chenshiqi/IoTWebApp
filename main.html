@@ -10,6 +10,7 @@
     <link rel="stylesheet" type="text/css" href="css/bootstrap.css"/>
     <link rel="stylesheet" type="text/css" href="css/daterangepicker.css"/>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
     
     <!-- Javascript Ref -->
     <script src="https://www.gstatic.com/firebasejs/3.6.0/firebase.js"></script>
@@ -21,10 +22,10 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="js/moment.js"></script>
     <script type="text/javascript" src="js/d3.js"></script>
-    <script type="text/javascript" src="js/nv.d3.js"></script>
     <script type="text/javascript" src="js/crossfilter.js"></script>
     <script type="text/javascript" src="js/dc.js"></script>
     <script type="text/javascript" src="js/daterangepicker.js"></script>
+    <script type="text/javascript" src="js/colorbrewer.js"></script>
 
     <!-- Get all student data -->
     
@@ -60,12 +61,17 @@
             stroke-width: 1;
             stroke:#fff;
         }
+        #studentTrend .x.axis text {
+            text-anchor: end !important;
+            transform: rotate(-45deg);
+        }
+
     </style>
 </head>
         
 <body>
     
-        <!-- Fixed navbar -->
+    <!-- Fixed navbar -->
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container">
         <div class="navbar-header">
@@ -79,8 +85,7 @@
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
-            <li><a href="#">Home</a></li>
-            <li class="active"><a href="index.html">Dashboard</a></li>
+            <li class="active"><a href="main.html">Dashboard</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -102,15 +107,17 @@
 
         <div class="row  add-padding">
             <div class="col-md-6">
-                <div id="studentTrend"></div>
+                <div id="studentTrend" class="dc-chart"></div>
+                <a class="reset" href="javascript:studentTrend.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+
+                <div class="clearfix"></div>
             </div>
             <div class="col-md-6">
-                <!-- <div id="pingTrend"> -->
-                <div id="chart">
-                  <svg></svg>
-                </div>
+                <div id="pingTrend" class="dc-chart"></div>
+                <a class="reset" href="javascript:pingTrend.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+                   
+                <div class="clearfix"></div>
             </div>
-
         </div>
     </div>
     
@@ -130,49 +137,52 @@
 
       var rawStudentData = {};
       db.ref('/childData').once('value').then(function(snapshot) {
+        
         rawStudentData = snapshot.val();
 
+        var keyArr = Object.keys(rawStudentData);
+        var studentData = keyArr.map(function(key) {
+          return {
+            associatedChild: rawStudentData[key].associatedChild,
+            isMonitoring: rawStudentData[key].isMonitoring,
+            major: rawStudentData[key].major,
+            minor: rawStudentData[key].minor,
+            proximity: rawStudentData[key].proximity,
+            uuid: rawStudentData[key].uuid,
+            timestamp : new Date(rawStudentData[key].timestamp)
+          }
+        });
+
         //prepare data for graph rendring
-        
-        // single student temp solution
-        var student1 = [];
-        var student1Name = "Max Chua";
+        // for(var i in rawStudentData){
+        //   console.log(rawStudentData[i]);
+        //   return;
+        //   var studentObj = rawStudentData[i];
+        //   var studentName = studentObj.associatedChild;
+        //   if(studentObj.isMonitoring == false){
+        //     if(studentName in students == false){
+        //       students[studentName] = 1;
+        //     } else {
+        //       ++students[studentName];
+        //     }
+        //   }
+        // }
 
-        var students = {};  
-        for(var i in rawStudentData){
-          // console.log(rawStudentData[i]);
-          var studentObj = rawStudentData[i];
-          var studentName = studentObj.associatedChild;
-          if(studentObj.isMonitoring == false){
-            if(studentName in students == false){
-              students[studentName] = 1;
-            } else {
-              ++students[studentName];
-            }
-          }
+        // var dateFormat = d3.time.format('%m/%d/%Y');
+        // var numberFormat = d3.format('.2f');
 
-          if(studentName == student1Name){
-            
-            var dateTime = new Date(studentObj.timestamp);
-            // console.log(dateTime);
-            // return;
-            
-            student1.push(studentObj);
-          }
-        }
+        // rawStudentData.forEach(function (d) {
+        //     d.date = new Date(d.timestamp);
+        //     d.dd = dateFormat.parse(d.date);
+        //     d.month = d3.time.month(d.dd); // pre-calculate month for better performance
+        //     d.close = +d.close; // coerce to number
+        //     d.open = +d.open;
+        // });
+        // console.log(studentData);
 
-        console.log(student1);
-
-        var studentData = [];
-        for(var i in students){
-          var tempStudent = {};
-          tempStudent.name = i;
-          tempStudent.count = students[i];
-          studentData.push(tempStudent);
-        }
-        console.log(studentData);
-
-        
+        // var dateObj = new Date(1479386756333);
+        // var dateString = dateObj.getFullYear() + '-' + dateObj.getMonth() + '-' + dateObj.getDate();
+        // console.log(dateString);
 
         //render d3 graph
         // init charts
@@ -202,45 +212,54 @@
           // d3.json(studentData, function(error, data) {
           //   if(error)
           //       throw new Error(error);
-            
         
-          var ndx            = crossfilter(studentData),
-              studentDimension = ndx.dimension(function(d) {return d.name;}),
-              sumGroup       = studentDimension.group().reduceCount();
-              // sumGroup       = studentDimension.group().reduceSum(function(d) {return d.count;});
-              // trendDimension = ndx.dimension(function(d){ return +d.name, +d.timestamp;}),
-              // trendGroup = trendDimension.group().reduceSum(function(d){ return d.proximity;});
+          var ndx = crossfilter(studentData);
+          var all = ndx.groupAll();
+
+
+          var studentDimension = ndx.dimension(function(d) {
+            // console.log(d.associatedChild);
+            return (d.proximity > 7 || d.proximity < 0) ? d.associatedChild:"wrong";
+            
+            // return d.associatedChild;
+          });
+          
+          // var topStudents = studentDimension.filterExact("wrong"); 
+          // console.log(topStudents);
+               
+          var studentSumGroup = studentDimension.group().reduceCount();
+          
+          var filteredStudentGroup = {
+              all: function () {
+                  return studentSumGroup.top(Infinity).filter( function (d) { 
+                    // console.log(d);
+                    return d.key != "wrong"; 
+                  });
+              }
+          }
+
+          var trendDimension   = ndx.dimension(function(d){ return +d.name, +d.timestamp;});
+          // var trendGroup       = trendDimension.group().reduceSum(function(d){ return d.proximity;});
           //the data needs to have d.name, d.timestamp (need to format), d.proximity
           
           //bar chart
           studentTrend
               .width(568)
               .height(380)
+              .margins({top: 10, right: 50, bottom: 50, left: 40})
               .x(d3.scale.ordinal())
               .xUnits(dc.units.ordinal)
               .brushOn(false)
-              .xAxisLabel('Student')
-              .yAxisLabel('Count')
               .dimension(studentDimension)
+              .group(filteredStudentGroup)
+              .yAxisLabel('Count')
               .barPadding(0.1)
-              .outerPadding(0.05)
-              .group(sumGroup);
+              .outerPadding(0.05);
           
-          //series chart
-            /*pingTrend
-                .width(420)
-                .height(180)
-                .x(d3.scale.ordinal())
-                .xUnits(dc.units.ordinal)
-                .brushOn(false)
-                .xAxisLabel('Student')
-                .yAxisLabel('Count')
-                .dimension(studentDimension)
-                .barPadding(0.1)
-                .outerPadding(0.05)
-                .group(sumGroup);*/
-
-          //these dates need to change to timestamps and not dates. e.g from 9am to 10am depending on our dataset
+          // console.log(studentDimension);
+          console.log("reahced");
+          
+          // //these dates need to change to timestamps and not dates. e.g from 9am to 10am depending on our dataset
           // var minDate = new Date (2016, 10, 1);
           // var maxDate = new Date (2016, 10, 30);
 
@@ -250,7 +269,6 @@
           //     .height(480)
           //     .chart(function(c) { return dc.lineChart(c).interpolate('basis'); })
           //     .x(d3.time.scale().domain([minDate,maxDate]))
-          //     .xAxis()
           //     .brushOn(false)
           //     .yAxisLabel("Proximity (m)")
           //     .xAxisLabel("Timestamp")
@@ -264,8 +282,30 @@
           //     .valueAccessor(function(d) {return +d.value - 500;})
           //     .legend(dc.legend().x(350).y(350).itemHeight(13).gap(5).horizontal(1).legendWidth(140).itemWidth(70));
           //   chart.yAxis().tickFormat(function(d) {return d3.format(',d')(d+299500);});
-          //   chart.margins().left += 40;          
-            dc.renderAll();
+          //   chart.margins().left += 40;   
+
+          //   moveChart
+          //     .width(990)
+          //     .height(200)
+          //     .chart(function(c) { return dc.lineChart(c).interpolate('basis'); })
+          //     .x(d3.time.scale().domain([new Date(1985, 0, 1), new Date(2012, 11, 31)]))
+          //     .brushOn(false)
+          //     .yAxisLabel("Distance")
+          //     .xAxisLabel("Time")
+          //     .clipPadding(10)
+          //     .elasticY(true)
+          //     .dimension(moveMonths)
+          //     .group(indexAvgByMonthGroup, 'Monthly Index Average')
+          //     .mouseZoomable(true)
+          //     .seriesAccessor(function(d) {return "Expt: " + d.key[0];})
+          //     .keyAccessor(function(d) {return +d.key[1];})
+          //     .valueAccessor(function (d) {
+          //         return d.value.avg;
+          //     })
+          //     .legend(dc.legend().x(800).y(10).itemHeight(13).gap(5))
+          //     .margins({top: 30, right: 50, bottom: 25, left: 40});
+
+          dc.renderAll();
 
         });
       // });
