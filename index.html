@@ -6,6 +6,7 @@
     
     <!-- Stylesheet Ref -->
     <link rel="stylesheet" type="text/css" href="css/dc.css"/>
+    <link rel="stylesheet" type="text/css" href="css/nv.d3.css"/>
     <link rel="stylesheet" type="text/css" href="css/bootstrap.css"/>
     <link rel="stylesheet" type="text/css" href="css/daterangepicker.css"/>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
@@ -15,24 +16,12 @@
     <script src="https://www.gstatic.com/firebasejs/3.5.2/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/3.5.2/firebase-database.js"></script>
     <script>
-      // Initialize Firebase
-      var config = {
-        apiKey: "AIzaSyA0QSxxxBURiGZqIAiUl45FXc_iyUDNXU8",
-        authDomain: "is439activitymonitor.firebaseapp.com",
-        databaseURL: "https://is439activitymonitor.firebaseio.com",
-        storageBucket: "is439activitymonitor.appspot.com",
-        messagingSenderId: "526517068007"
-      };
-      firebase.initializeApp(config);
-      // Get all student data
-      var db = firebase.database();
-      db.ref('/childData').once('value').then(function(snapshot) {
-        console.log(snapshot.val());
-      });
+
     </script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="js/moment.js"></script>
     <script type="text/javascript" src="js/d3.js"></script>
+    <script type="text/javascript" src="js/nv.d3.js"></script>
     <script type="text/javascript" src="js/crossfilter.js"></script>
     <script type="text/javascript" src="js/dc.js"></script>
     <script type="text/javascript" src="js/daterangepicker.js"></script>
@@ -116,87 +105,195 @@
                 <div id="studentTrend"></div>
             </div>
             <div class="col-md-6">
-                <div id="pingTrend">
+                <!-- <div id="pingTrend"> -->
+                <div id="chart">
+                  <svg></svg>
+                </div>
             </div>
 
         </div>
-
+        <button onclick="download_csv()">Download CSV</button> 
     </div>
 
+    <script>
+      var data = [
+         ['Foo', 'programmer'],
+         ['Bar', 'bus driver'],
+         ['Moo', 'Reindeer Hunter']
+      ];
+       
+       
+      function download_csv() {
+          var csv = 'Name,Title\n';
+          data.forEach(function(row) {
+                  csv += row.join(',');
+                  csv += "\n";
+          });
+       
+          console.log(csv);
+          var hiddenElement = document.createElement('a');
+          hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
+          hiddenElement.target = '_blank';
+          hiddenElement.download = 'people.csv';
+          hiddenElement.click();
+      }
+    </script>
 
+    
+    <script type="text/javascript"> 
+    // Initialize Firebase
+      
+      var config = {
+        apiKey: "AIzaSyA0QSxxxBURiGZqIAiUl45FXc_iyUDNXU8",
+        authDomain: "is439activitymonitor.firebaseapp.com",
+        databaseURL: "https://is439activitymonitor.firebaseio.com",
+        storageBucket: "is439activitymonitor.appspot.com",
+        messagingSenderId: "526517068007"
+      };
+      firebase.initializeApp(config);
+      // Get all student data
+      var db = firebase.database();
 
-    
-    <script type="text/javascript">        
-    // init charts
-    var studentTrend = dc.barChart('#studentTrend');
-    var pingTrend = dc.seriesChart('#pingTrend');
-        
-        
-    // date picker
-    
-    $('#date-range').daterangepicker({
-            "dateLimit": {
-                "days": 31
-            },
-            "showCustomRangeLabel": false,
-            "alwaysShowCalendars": true,
-            "autoApply": true,
-            "startDate": "02/01/2016",
-            "endDate": "02/25/2016",
-            "minDate": "11/15/2015",
-            "maxDate": "09/01/2016"
-        }, function(start, end, label) {
-                console.log("Start date: " + start + " and end date: " + end);
-            });
-    
-    
-        
-        //read data
+      var rawStudentData = {};
+      db.ref('/childData').once('value').then(function(snapshot) {
+        rawStudentData = snapshot.val();
 
-  d3.json('students_v2.json', function(error, data) {
-      if(error)
-          throw new Error(error);
-      
-      //to only retrieve student's name and count number of isMonitering == fasle and store into new data array
-      
-      var dataStudent = [];
-      
-      data.forEach(function(d){
-          var name = d.name;
-          //TODO: check if dataStudent contains d.name
-          
-          var countFalse = 0;
-          if (d.isMonitoring == false){
-              countFalse++;
+        //prepare data for graph rendring
+        
+        // single student temp solution
+        var student1 = [];
+        var student1Name = "Max Chua";
+
+        var students = {};  
+        for(var i in rawStudentData){
+          // console.log(rawStudentData[i]);
+          var studentObj = rawStudentData[i];
+          var studentName = studentObj.associatedChild;
+          if(studentObj.isMonitoring == false){
+            if(studentName in students == false){
+              students[studentName] = 1;
+            } else {
+              ++students[studentName];
+            }
           }
-          dataStudent.push([name,countFalse]);
-      });
-      
-      var ndx            = crossfilter(counts),
-          studentDimension = ndx.dimension(function(d) {return d.name;}),
-          sumGroup       = studentDimension.group().reduceSum(function(d) {return d.proximity;});
-      
-      
-      //bar chart
-      studentTrend
-          .width(568)
-          .height(380)
-          .x(d3.scale.ordinal())
-          .xUnits(dc.units.ordinal)
-          .brushOn(false)
-          .xAxisLabel('Student')
-          .yAxisLabel('Count')
-          .dimension(studentDimension)
-          .barPadding(0.1)
-          .outerPadding(0.05)
-          .group(sumGroup);
-      
-      //series chart
-      
-      
-      dc.renderAll();
-  });
+
+          if(studentName == student1Name){
+            
+            var dateTime = new Date(studentObj.timestamp);
+            // console.log(dateTime);
+            // return;
+            
+            student1.push(studentObj);
+          }
+        }
+
+        console.log(student1);
+
+        var studentData = [];
+        for(var i in students){
+          var tempStudent = {};
+          tempStudent.name = i;
+          tempStudent.count = students[i];
+          studentData.push(tempStudent);
+        }
+        console.log(studentData);
+
         
+
+        //render d3 graph
+        // init charts
+        var studentTrend = dc.barChart('#studentTrend');
+        var pingTrend = dc.seriesChart('#pingTrend');
+            
+            
+          // date picker
+          $('#date-range').daterangepicker({
+                "dateLimit": {
+                    "days": 31
+                },
+                "showCustomRangeLabel": false,
+                "alwaysShowCalendars": true,
+                "autoApply": true,
+                "startDate": "02/01/2016",
+                "endDate": "02/25/2016",
+                "minDate": "11/15/2015",
+                "maxDate": "09/01/2016"
+            }, function(start, end, label) {
+                    console.log("Start date: " + start + " and end date: " + end);
+                });
+        
+          //"students_v2.json"
+          //read data
+          // console.log(studentData);
+          // d3.json(studentData, function(error, data) {
+          //   if(error)
+          //       throw new Error(error);
+            
+        
+          var ndx            = crossfilter(studentData),
+              studentDimension = ndx.dimension(function(d) {return d.name;}),
+              sumGroup       = studentDimension.group().reduceSum(function(d) {return d.count;});
+              // trendDimension = ndx.dimension(function(d){ return +d.name, +d.timestamp;}),
+              // trendGroup = trendDimension.group().reduceSum(function(d){ return d.proximity;});
+          //the data needs to have d.name, d.timestamp (need to format), d.proximity
+          
+          //bar chart
+          studentTrend
+              .width(568)
+              .height(380)
+              .x(d3.scale.ordinal())
+              .xUnits(dc.units.ordinal)
+              .brushOn(false)
+              .xAxisLabel('Student')
+              .yAxisLabel('Count')
+              .dimension(studentDimension)
+              .barPadding(0.1)
+              .outerPadding(0.05)
+              .group(sumGroup);
+          
+          //series chart
+            /*pingTrend
+                .width(420)
+                .height(180)
+                .x(d3.scale.ordinal())
+                .xUnits(dc.units.ordinal)
+                .brushOn(false)
+                .xAxisLabel('Student')
+                .yAxisLabel('Count')
+                .dimension(studentDimension)
+                .barPadding(0.1)
+                .outerPadding(0.05)
+                .group(sumGroup);*/
+
+          //these dates need to change to timestamps and not dates. e.g from 9am to 10am depending on our dataset
+          // var minDate = new Date (2016, 10, 1);
+          // var maxDate = new Date (2016, 10, 30);
+
+          // //series chart
+          //   pingTrend
+          //     .width(768)
+          //     .height(480)
+          //     .chart(function(c) { return dc.lineChart(c).interpolate('basis'); })
+          //     .x(d3.time.scale().domain([minDate,maxDate]))
+          //     .xAxis()
+          //     .brushOn(false)
+          //     .yAxisLabel("Proximity (m)")
+          //     .xAxisLabel("Timestamp")
+          //     .clipPadding(10)
+          //     .elasticY(true) 
+          //     .dimension(runDimension) //change to new dimension --> trendDimension 
+          //     .group(runGroup) // change to new group
+          //     .mouseZoomable(true)
+          //     .seriesAccessor(function(d) {return "Student: " + d.key[0];})
+          //     .keyAccessor(function(d) {return +d.key[1];})
+          //     .valueAccessor(function(d) {return +d.value - 500;})
+          //     .legend(dc.legend().x(350).y(350).itemHeight(13).gap(5).horizontal(1).legendWidth(140).itemWidth(70));
+          //   chart.yAxis().tickFormat(function(d) {return d3.format(',d')(d+299500);});
+          //   chart.margins().left += 40;          
+            dc.renderAll();
+
+        });
+      // });
         
     </script>
 

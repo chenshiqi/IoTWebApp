@@ -10,7 +10,7 @@
     {"name": "Dick", 
      "cnt": 5,
      "minor":2,
-     "major":1,
+     "major":1, 
      "proximity":5,
      "isMonitoring": true,
      "uuid": "FDA50693-A4E2-4FB1-AFCF-C6EB07647825"
