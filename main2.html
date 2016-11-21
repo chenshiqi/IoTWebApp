@@ -189,7 +189,7 @@
         // init charts
         var studentTrend = dc.barChart('#studentTrend');
         var pingTrend = dc.seriesChart('#pingTrend');
-            
+          
         // date picker
         var minDate, maxDate;
         
@@ -239,13 +239,36 @@
                   });
               }
           }
-
-          //var timeAndChild   = ndx.dimension(function(d){ return [+d.associatedChild, +d.timestamp];});
-          var proximityDim   = ndx.dimension(function(d){ return [d.associatedChild, +d.timestamp];});
-          //var proximityDim   = ndx.dimension(function(d){ return [d.proximity];}); 
-          //var proximityGroup = proximityDim.group();
           
-          var proximityGroup = proximityDim.group().reduceSum(function(d){ return d.proximity});
+          function reduceAdd(p, v, nf) {
+              return p + 1;
+            }
+
+            function reduceRemove(p, v, nf) {
+              return p - 1;
+            }
+
+            function reduceInitial(p, v) {
+              return 0;
+            }          
+          
+          var timeAndChild   = ndx.dimension(function(d){ return [d.associatedChild, d.timestamp];});
+          //var proximityDim   = ndx.dimension(function(d){ return [d.associatedChild, +d.timestamp];});
+          //var proximityDim   = ndx.dimension(function(d){ return [d.proximity];}); 
+          //var proximityGroup = proximityDim.all();
+          
+          var proximityGroup = {
+              all: function () {
+                  return studentSumGroup.top(Infinity).filter( function (d) { 
+                    // console.log(d);
+                    return d.key != "wrong";
+                  });
+              }
+          }
+          
+          var proximityGroup = timeAndChild.group().reduceSum(function(d){return d.proximity;});
+
+            
           
           
           //bar chart
@@ -267,21 +290,21 @@
                .width(568)
                .height(380)
                //.chart(function(c) { return dc.lineChart(c).interpolate('basis'); })
-               .x(d3.time.scale().domain([new Date(2016, 10, 13),new Date(2016,10,13)]))
+               .x(d3.time.scale().domain([new Date(2016, 10, 18),new Date(2016,10,19)]))
                .y(d3.scale.linear().domain([-2, 15]))
                .brushOn(false)
                .yAxisLabel("Proximity (m)")
                .xAxisLabel("Timestamp")
                //.clipPadding(10)
                .margins({top: 10, right: 50, bottom: 50, left: 40})
-               .elasticY(true) 
-               .elasticX(true)
-               .dimension(proximityDim)
+               //.elasticY(true) 
+               //.elasticX(true)
+               .dimension(timeAndChild)
                .group(proximityGroup)
                .mouseZoomable(false)
                .seriesAccessor(function(d) {return d.key[0];})
-               .keyAccessor(function(d) {return +d.key[1];})
-               .valueAccessor(function(d) {return +d.value;})
+               .keyAccessor(function(d) {return d.key[1];})
+               .valueAccessor(function(d) {return d.value;})
                .legend(dc.legend().x(150).y(100).itemHeight(8).gap(5).horizontal(1).legendWidth(140).itemWidth(70));
              //pingTrend.yAxis().tickFormat(function(d) {return d3.format(',d')(d+299500);});
              pingTrend.margins().left += 40;  
